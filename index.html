@@ -67,16 +67,18 @@
 </head>
 <body>
 
-  <h2>AI Chat</h2>
+  <h2>AI Chat & Image Generator</h2>
   <div id="chat-box"></div>
 
   <div id="input-container">
-    <input type="text" id="user-input" placeholder="Type a message..." />
+    <input type="text" id="user-input" placeholder='Try "draw a flying castle"...' />
     <button id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
   <script>
-    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Replace with your Cloudflare Worker URL
+    // --- STEP 1: ADD YOUR WORKER URL HERE! ---
+    const WORKER_URL = "YOUR_WORKER_URL_HERE"; 
+    
     let currentSystemPrompt = "You are a helpful AI assistant.";
     let username = "User";
     let waitingForNewPersonality = false;
@@ -93,7 +95,6 @@
       inputField.value = "";
       sendBtn.disabled = true;
 
-      // If the AI previously asked what to update its personality to
       if (waitingForNewPersonality) {
         currentSystemPrompt = text;
         waitingForNewPersonality = false;
@@ -103,7 +104,6 @@
         return;
       }
 
-      // Check if user typed a personality change command directly in the chat input
       const lower = text.toLowerCase();
       if (lower.includes("update personality") || lower.includes("change personality") || lower.includes("update your personality") || lower.includes("change your personality")) {
         const splitIndex = lower.indexOf("to ");
@@ -147,8 +147,15 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        const reply = data.reply || data.error;
-        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
+        // --- STEP 2: HANDLE IMAGE VS TEXT RESPONSES ---
+        if (data.isImage) {
+          // It's an image response: render as an <img> tag
+          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span><br><img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Generated Image" /></div>`;
+        } else {
+          // It's a text response: render as standard text
+          const reply = data.reply || data.error || "The AI could not generate a reply.";
+          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
+        }
       } catch (err) {
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
@@ -169,13 +176,11 @@
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         
-        // Handle set_username payload
         if (parsed && parsed.type === "set_username") {
           if (parsed.username) username = parsed.username;
           return;
         }
 
-        // Handle set_persona payload silently
         if (parsed && parsed.type === "set_persona") {
           currentSystemPrompt = parsed.prompt;
           const chatBox = document.getElementById("chat-box");
@@ -184,7 +189,7 @@
           return;
         }
       } catch(e) {
-        // Handle regular text message
+        // Handle standard text
       }
 
       if (typeof event.data === "string" && event.data.length > 0) {
@@ -192,7 +197,6 @@
       }
     });
 
-    // Check URL parameters on load
     window.addEventListener("DOMContentLoaded", () => {
       const urlParams = new URLSearchParams(window.location.search);
       const userParam = urlParams.get("username");
@@ -204,7 +208,6 @@
       if (msgParam) sendMessage(decodeURIComponent(msgParam));
     });
 
-    // Enter key support
     document.getElementById("user-input").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
         sendMessage();
