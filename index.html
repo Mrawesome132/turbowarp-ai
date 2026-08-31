@@ -167,7 +167,7 @@
     }
     .game-iframe {
       width: 100%;
-      height: 320px;
+      height: 380px;
       border: none;
       background: #ffffff;
     }
@@ -205,7 +205,7 @@
 
   <!-- Mode Toolbar -->
   <div id="style-bar">
-    <button class="style-tag" onclick="appendPrompt('game ', 'create a playable HTML canvas game of ')">🎮 Make Game</button>
+    <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--anime')">🎨 Anime</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--3d')">🎮 3D Render</button>
@@ -213,7 +213,7 @@
   </div>
 
   <div id="input-container">
-    <input type="text" id="user-input" placeholder='Try "game pong" or "draw a flying dragon"...' />
+    <input type="text" id="user-input" placeholder='Try "game minecraft clone" or "draw a flying dragon"...' />
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
@@ -227,7 +227,7 @@
   <script>
     const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; 
     
-    let currentSystemPrompt = "You are an AI assistant capable of writing clean single-file playable HTML/JS games, generating image descriptions, and chatting.";
+    let currentSystemPrompt = "You are a helpful AI assistant.";
     let username = "User";
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
@@ -305,7 +305,7 @@
     // 4. Data URL Textarea Display
     function export4_Textarea(id) {
       const b64 = imageCache[id];
-      const txt = prompt("Copy this raw Base64 string and paste into browser bar:", b64);
+      prompt("Copy this raw Base64 string and paste into your browser bar:", b64);
     }
 
     // 5. QR Code Generator Overlay
@@ -327,7 +327,7 @@
     }
 
     // 8. Draggable Asset
-    function export8_EnableDrag(id, imgElem) {
+    function export8_EnableDrag(imgElem) {
       imgElem.draggable = true;
       alert("Drag enabled! Click and drag the image directly onto your desktop or folder.");
     }
@@ -395,7 +395,7 @@
           <button class="export-btn" onclick="export5_QRCode('${id}')">5. 📱 QR Code</button>
           <button class="export-btn" onclick="export6_CloudUpload('${id}')">6. 📋 Copy Code</button>
           <button class="export-btn" onclick="export7_PostMessage('${id}')">7. 💬 PostMessage</button>
-          <button class="export-btn" onclick="export8_EnableDrag('${id}', this.parentElement.parentElement.querySelector('img'))">8. 🖱️ Drag Mode</button>
+          <button class="export-btn" onclick="export8_EnableDrag(this.parentElement.parentElement.querySelector('img'))">8. 🖱️ Drag Mode</button>
           <button class="export-btn" onclick="export9_WebShare('${id}')">9. 📲 Web Share</button>
           <button class="export-btn" onclick="export10_LocationStream('${id}')">10. ⚡ Direct Stream</button>
           <button class="export-btn" onclick="export11_BlobHTML('${id}')">11. 🌐 Blob Document</button>
@@ -418,7 +418,8 @@
       let text = textToSend || inputField.value.trim();
       if (!text) return;
 
-      const isGameRequest = text.toLowerCase().startsWith("game ") || text.toLowerCase().includes("make a game") || text.toLowerCase().includes("generate a game");
+      const lowerText = text.toLowerCase();
+      const isGameRequest = lowerText.startsWith("game") || lowerText.includes("make a game") || lowerText.includes("clone") || lowerText.includes("generate a game");
 
       text = text
         .replace(/--pixelart/gi, "in detailed 16-bit pixel art style")
@@ -453,7 +454,7 @@
         // Enforce Game Generation prompt rules when a game request is triggered
         let finalSystemPrompt = currentSystemPrompt;
         if (isGameRequest) {
-          finalSystemPrompt = "You are an expert JavaScript game developer. Return ONLY valid, executable HTML with embedded CSS/JS in a single block wrapped in ```html. Do not include introductory text.";
+          finalSystemPrompt = "You are a JavaScript game developer. The user wants a playable game written in HTML5 Canvas and JavaScript. Write a COMPLETE, fully functional, self-contained single-file HTML game with CSS and JS included. DO NOT list existing third-party games or open-source projects. DO NOT write conversational explanations. Return ONLY executable HTML code starting with <!DOCTYPE html>.";
         }
 
         const res = await fetch(WORKER_URL, {
