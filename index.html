@@ -3,48 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ChatGPT Interface</title>
+  <title>AI Studio - Chat, Images & Game Generator</title>
   <style>
     :root {
-      --bg-color: #343541;
-      --chat-bg: #444654;
+      --bg-color: #1e1e2e;
+      --chat-bg: #2b2b3d;
       --text-color: #ffffff;
-      --input-bg: #40414f;
-      --border-color: #555555;
-      --accent-color: #10a37f;
-      --ai-text-color: #ececf1;
+      --input-bg: #36364d;
+      --border-color: #4a4a68;
+      --accent-color: #7289da;
+      --ai-text-color: #e0e0e0;
+      --game-bg: #11111b;
     }
 
     body.light-mode {
-      --bg-color: #f7f7f8;
+      --bg-color: #f0f2f5;
       --chat-bg: #ffffff;
-      --text-color: #202123;
-      --input-bg: #ffffff;
-      --border-color: #d9d9e3;
-      --accent-color: #10a37f;
-      --ai-text-color: #353740;
+      --text-color: #1c1e21;
+      --input-bg: #f5f6f7;
+      --border-color: #ccd0d5;
+      --accent-color: #4267b2;
+      --ai-text-color: #2b2b2b;
+      --game-bg: #e4e6eb;
     }
 
     * { box-sizing: border-box; }
     html, body {
       height: 100%;
       margin: 0;
-      padding: 10px;
+      padding: 8px;
       overflow: hidden;
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
       color: var(--text-color);
       display: flex;
       flex-direction: column;
       transition: background-color 0.2s, color 0.2s;
     }
+
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     h2 { margin: 0; font-size: 1.1rem; }
+    
     .theme-btn {
       padding: 4px 10px;
       font-size: 0.8rem;
@@ -54,20 +58,29 @@
       color: var(--text-color);
       cursor: pointer;
     }
+
     #chat-box {
       flex: 1;
       overflow-y: auto;
       border: 1px solid var(--border-color);
       padding: 10px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       background-color: var(--chat-bg);
-      border-radius: 5px;
+      border-radius: 6px;
     }
+
     .message { margin-bottom: 12px; word-wrap: break-word; }
     .user { font-weight: bold; color: var(--accent-color); }
     .ai { font-weight: bold; color: var(--ai-text-color); }
 
-    #style-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+    /* Toolbar Presets */
+    #style-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
     .style-tag {
       background: var(--input-bg);
       border: 1px solid var(--border-color);
@@ -76,6 +89,7 @@
       padding: 4px 8px;
       border-radius: 4px;
       cursor: pointer;
+      white-space: nowrap;
     }
     .style-tag:hover { border-color: var(--accent-color); }
 
@@ -100,23 +114,65 @@
     }
     button.send-btn:disabled { background-color: #666; }
 
-    .btn-group {
-      display: flex;
-      gap: 8px;
-      margin-top: 6px;
+    /* 15-Workaround Export Grid */
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+      background: var(--input-bg);
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
     }
-
-    .img-action-btn {
-      padding: 6px 12px;
-      font-size: 0.8rem;
-      color: white;
-      background-color: var(--accent-color);
-      border: none;
+    .export-btn {
+      padding: 5px 8px;
+      font-size: 0.7rem;
+      background-color: var(--chat-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       cursor: pointer;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .img-action-btn:hover { opacity: 0.9; }
+    .export-btn:hover { border-color: var(--accent-color); }
 
+    /* Lightbox Modal Overlay (Idea #1) */
+    .lightbox-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .lightbox-modal img { max-width: 90%; max-height: 80%; border-radius: 8px; }
+    .lightbox-close {
+      position: absolute; top: 15px; right: 20px;
+      color: white; font-size: 24px; cursor: pointer;
+    }
+
+    /* Game Generator Container */
+    .game-container {
+      margin-top: 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--game-bg);
+    }
+    .game-iframe {
+      width: 100%;
+      height: 320px;
+      border: none;
+      background: #ffffff;
+    }
+
+    /* Typing Indicator */
     .typing-indicator {
       display: inline-flex;
       align-items: center;
@@ -124,8 +180,7 @@
       margin-left: 6px;
     }
     .typing-indicator span {
-      width: 6px;
-      height: 6px;
+      width: 6px; height: 6px;
       background-color: var(--ai-text-color);
       border-radius: 50%;
       animation: pulse 1.4s infinite ease-in-out both;
@@ -142,28 +197,37 @@
 <body>
 
   <div class="header">
-    <h2>AI Chat & Image Generator</h2>
+    <h2>AI Studio (Chat, Image & Game Generator)</h2>
     <button class="theme-btn" onclick="toggleTheme()">☀️ / 🌙</button>
   </div>
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
+  <!-- Mode Toolbar -->
   <div id="style-bar">
-    <button class="style-tag" onclick="appendStyle('--pixelart')">👾 Pixel Art</button>
-    <button class="style-tag" onclick="appendStyle('--anime')">🎨 Anime</button>
-    <button class="style-tag" onclick="appendStyle('--3d')">🎮 3D Render</button>
-    <button class="style-tag" onclick="appendStyle('--cinematic')">🎬 Cinematic</button>
+    <button class="style-tag" onclick="appendPrompt('game ', 'create a playable HTML canvas game of ')">🎮 Make Game</button>
+    <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
+    <button class="style-tag" onclick="appendPrompt('draw ', '--anime')">🎨 Anime</button>
+    <button class="style-tag" onclick="appendPrompt('draw ', '--3d')">🎮 3D Render</button>
+    <button class="style-tag" onclick="appendPrompt('draw ', '--cinematic')">🎬 Cinematic</button>
   </div>
 
   <div id="input-container">
-    <input type="text" id="user-input" placeholder='Try "draw a flying castle"...' />
+    <input type="text" id="user-input" placeholder='Try "game pong" or "draw a flying dragon"...' />
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+
+  <!-- Lightbox Overlay (Idea 1) -->
+  <div id="lightbox" class="lightbox-modal">
+    <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+    <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
+    <img id="lightbox-img" src="" alt="Fullscreen Image" />
   </div>
 
   <script>
     const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; 
     
-    let currentSystemPrompt = "You are a helpful AI assistant.";
+    let currentSystemPrompt = "You are an AI assistant capable of writing clean single-file playable HTML/JS games, generating image descriptions, and chatting.";
     let username = "User";
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
@@ -187,40 +251,164 @@
       document.body.classList.toggle("light-mode");
     }
 
-    function appendStyle(tag) {
+    function appendPrompt(prefix, tag) {
       const inputField = document.getElementById("user-input");
       let currentVal = inputField.value.trim();
 
-      const triggers = ["draw", "generate image", "generate an image", "create an image", "/image"];
-      const startsWithTrigger = triggers.some(t => currentVal.toLowerCase().startsWith(t));
-
-      if (!startsWithTrigger) {
-        currentVal = currentVal ? `draw ${currentVal}` : "draw ";
+      if (!currentVal.toLowerCase().startsWith(prefix.trim())) {
+        currentVal = `${prefix}${currentVal}`;
       }
 
-      if (!currentVal.includes(tag)) {
-        inputField.value = `${currentVal} ${tag}`.trim();
-      } else {
-        inputField.value = currentVal;
+      if (tag && !currentVal.includes(tag)) {
+        currentVal = `${currentVal} ${tag}`;
       }
 
+      inputField.value = currentVal.trim();
       inputField.focus();
     }
 
-    // Copy raw image data URL to clipboard as an iframe bypass
-    async function copyImageData(imageId, btnElement) {
-      const base64Data = imageCache[imageId];
-      if (!base64Data) return;
+    // ==========================================
+    // ALL 15 IFRAME BYPASS EXPORT WORKAROUNDS
+    // ==========================================
 
-      try {
-        await navigator.clipboard.writeText(base64Data);
-        const originalText = btnElement.innerText;
-        btnElement.innerText = "📋 Copied! Paste in New Tab";
-        setTimeout(() => { btnElement.innerText = originalText; }, 3000);
-      } catch (err) {
-        alert("Right-click directly on the image above and select 'Save image as...' or 'Copy image'.");
-      }
+    // 1. Lightbox / Modal Overlay
+    function export1_Lightbox(id) {
+      document.getElementById('lightbox-img').src = imageCache[id];
+      document.getElementById('lightbox').style.display = 'flex';
     }
+    function closeLightbox() {
+      document.getElementById('lightbox').style.display = 'none';
+    }
+
+    // 2. Open via parent.location
+    function export2_ParentLoc(id) {
+      try { parent.location.href = imageCache[id]; } 
+      catch(e) { window.open(imageCache[id], '_blank'); }
+    }
+
+    // 3. Canvas Element Conversion
+    function export3_CanvasBlob(id) {
+      const img = new Image();
+      img.src = imageCache[id];
+      img.onload = () => {
+        const cvs = document.createElement('canvas');
+        cvs.width = img.width; cvs.height = img.height;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        cvs.toBlob(blob => {
+          const u = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = u; a.download = 'ai-image.jpg'; a.click();
+        });
+      };
+    }
+
+    // 4. Data URL Textarea Display
+    function export4_Textarea(id) {
+      const b64 = imageCache[id];
+      const txt = prompt("Copy this raw Base64 string and paste into browser bar:", b64);
+    }
+
+    // 5. QR Code Generator Overlay
+    function export5_QRCode(id) {
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(imageCache[id].substring(0, 1000))}`;
+      window.open(url, '_blank');
+    }
+
+    // 6. Cloud Upload Emulation / Copy
+    function export6_CloudUpload(id) {
+      navigator.clipboard.writeText(imageCache[id]);
+      alert("Image payload copied to clipboard for direct remote upload!");
+    }
+
+    // 7. window.postMessage to Host
+    function export7_PostMessage(id) {
+      window.parent.postMessage({ type: 'SAVE_IMAGE', data: imageCache[id] }, '*');
+      alert("Sent image save request to host window via postMessage!");
+    }
+
+    // 8. Draggable Asset
+    function export8_EnableDrag(id, imgElem) {
+      imgElem.draggable = true;
+      alert("Drag enabled! Click and drag the image directly onto your desktop or folder.");
+    }
+
+    // 9. Web Share API
+    async function export9_WebShare(id) {
+      if (navigator.share) {
+        try {
+          const res = await fetch(imageCache[id]);
+          const blob = await res.blob();
+          const file = new File([blob], 'ai-image.jpg', { type: 'image/jpeg' });
+          await navigator.share({ files: [file], title: 'AI Image' });
+        } catch(e) { alert("Web Share not supported in this iframe context."); }
+      } else { alert("Web Share API unavailable."); }
+    }
+
+    // 10. Direct Location Stream
+    function export10_LocationStream(id) {
+      window.location.href = imageCache[id];
+    }
+
+    // 11. Blob Page Window
+    function export11_BlobHTML(id) {
+      const html = `<html><body style="margin:0;background:#111;display:flex;justify-content:center;align-items:center;height:100vh;"><img src="${imageCache[id]}" style="max-width:90%;"><p style="color:#fff;position:fixed;top:10px;">Right-click to save image</p></body></html>`;
+      const blob = new Blob([html], { type: 'text/html' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    }
+
+    // 12. SVG Wrapper Embed
+    function export12_SVGWrapper(id) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="${imageCache[id]}" width="512" height="512"/></svg>`;
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      window.open(URL.createObjectURL(blob), '_blank');
+    }
+
+    // 13. Auto Select Image Element
+    function export13_AutoSelect(imgElem) {
+      const range = document.createRange();
+      range.selectNode(imgElem);
+      window.getSelection().removeAllRanges();
+      window.getSelection().addRange(range);
+      alert("Image element selected! Press Ctrl+C / Cmd+C to copy.");
+    }
+
+    // 14. Email Dispatch Link
+    function export14_EmailLink(id) {
+      window.location.href = `mailto:?subject=AI Generated Image&body=Here is your image base64 code: ${encodeURIComponent(imageCache[id].substring(0, 500))}...`;
+    }
+
+    // 15. OS Screenshot Instructions
+    function export15_OSInstructions() {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const shortcut = isMac ? "Cmd + Shift + 4" : "Win + Shift + S";
+      alert(`Press [ ${shortcut} ] to take a crisp snippet screenshot of the image!`);
+    }
+
+    // Helper to generate all 15 action buttons in a neat grid
+    function generate15ExportButtons(id) {
+      return `
+        <div class="export-grid">
+          <button class="export-btn" onclick="export1_Lightbox('${id}')">1. 🔍 Lightbox</button>
+          <button class="export-btn" onclick="export2_ParentLoc('${id}')">2. ↗️ Break Frame</button>
+          <button class="export-btn" onclick="export3_CanvasBlob('${id}')">3. 🎨 Canvas Blob</button>
+          <button class="export-btn" onclick="export4_Textarea('${id}')">4. 📝 Data String</button>
+          <button class="export-btn" onclick="export5_QRCode('${id}')">5. 📱 QR Code</button>
+          <button class="export-btn" onclick="export6_CloudUpload('${id}')">6. 📋 Copy Code</button>
+          <button class="export-btn" onclick="export7_PostMessage('${id}')">7. 💬 PostMessage</button>
+          <button class="export-btn" onclick="export8_EnableDrag('${id}', this.parentElement.parentElement.querySelector('img'))">8. 🖱️ Drag Mode</button>
+          <button class="export-btn" onclick="export9_WebShare('${id}')">9. 📲 Web Share</button>
+          <button class="export-btn" onclick="export10_LocationStream('${id}')">10. ⚡ Direct Stream</button>
+          <button class="export-btn" onclick="export11_BlobHTML('${id}')">11. 🌐 Blob Document</button>
+          <button class="export-btn" onclick="export12_SVGWrapper('${id}')">12. 🖼️ SVG Wrap</button>
+          <button class="export-btn" onclick="export13_AutoSelect(this.parentElement.parentElement.querySelector('img'))">13. 🎯 Auto Select</button>
+          <button class="export-btn" onclick="export14_EmailLink('${id}')">14. ✉️ Email Link</button>
+          <button class="export-btn" onclick="export15_OSInstructions()">15. ✂️ Screenshot Guide</button>
+        </div>`;
+    }
+
+    // ==========================================
+    // CHAT & GAME GENERATOR MAIN LOGIC
+    // ==========================================
 
     async function sendMessage(textToSend) {
       const inputField = document.getElementById("user-input");
@@ -229,6 +417,8 @@
       
       let text = textToSend || inputField.value.trim();
       if (!text) return;
+
+      const isGameRequest = text.toLowerCase().startsWith("game ") || text.toLowerCase().includes("make a game") || text.toLowerCase().includes("generate a game");
 
       text = text
         .replace(/--pixelart/gi, "in detailed 16-bit pixel art style")
@@ -240,35 +430,11 @@
       inputField.value = "";
       sendBtn.disabled = true;
 
+      // Handling Personality Change Request
       if (waitingForNewPersonality) {
         currentSystemPrompt = text;
         waitingForNewPersonality = false;
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
-        sendBtn.disabled = false;
-        autoScroll();
-        return;
-      }
-
-      const lower = text.toLowerCase();
-      if (lower.includes("update personality") || lower.includes("change personality") || lower.includes("update your personality") || lower.includes("change your personality")) {
-        const splitIndex = lower.indexOf("to ");
-        const colonIndex = text.indexOf(":");
-        
-        let newPrompt = "";
-        if (colonIndex !== -1) {
-          newPrompt = text.substring(colonIndex + 1).trim();
-        } else if (splitIndex !== -1) {
-          newPrompt = text.substring(splitIndex + 3).trim();
-        }
-
-        if (newPrompt) {
-          currentSystemPrompt = newPrompt;
-          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
-        } else {
-          waitingForNewPersonality = true;
-          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> What should I update my personality to?</div>`;
-        }
-
         sendBtn.disabled = false;
         autoScroll();
         return;
@@ -284,12 +450,18 @@
       autoScroll();
 
       try {
+        // Enforce Game Generation prompt rules when a game request is triggered
+        let finalSystemPrompt = currentSystemPrompt;
+        if (isGameRequest) {
+          finalSystemPrompt = "You are an expert JavaScript game developer. Return ONLY valid, executable HTML with embedded CSS/JS in a single block wrapped in ```html. Do not include introductory text.";
+        }
+
         const res = await fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ 
             message: text,
-            systemPrompt: currentSystemPrompt,
+            systemPrompt: finalSystemPrompt,
             username: username
           })
         });
@@ -299,26 +471,42 @@
         if (loadingElem) loadingElem.remove();
 
         if (data.isImage) {
+          // Render Image + 15 Export Bypass Tools
           const imageId = "img_" + Date.now();
           imageCache[imageId] = data.reply;
 
           chatBox.innerHTML += `
             <div class="message">
-              <span class="ai">AI:</span><br>
+              <span class="ai">AI Generated Image:</span><br>
               <img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
-              <div class="btn-group">
-                <button class="img-action-btn" onclick="copyImageData('${imageId}', this)">📋 Copy Image URL</button>
-              </div>
+              ${generate15ExportButtons(imageId)}
             </div>`;
         } else {
-          const reply = data.reply || data.error || "The AI could not generate a reply.";
-          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
+          const reply = data.reply || data.error || "No response received.";
+
+          // Check if response contains generated game code
+          if (isGameRequest || reply.includes("<!DOCTYPE html>") || reply.includes("<canvas") || reply.includes("```html")) {
+            const cleanHtml = reply.replace(/```html/gi, '').replace(/```/g, '').trim();
+            const gameBlob = new Blob([cleanHtml], { type: 'text/html' });
+            const gameUrl = URL.createObjectURL(gameBlob);
+
+            chatBox.innerHTML += `
+              <div class="message">
+                <span class="ai">🎮 AI Game Generated:</span>
+                <div class="game-container">
+                  <iframe class="game-iframe" src="${gameUrl}"></iframe>
+                </div>
+              </div>`;
+          } else {
+            // Render Regular Text
+            chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
+          }
         }
       } catch (err) {
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend worker.</div>`;
       }
 
       sendBtn.disabled = false;
@@ -329,20 +517,12 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    // External listener for Scratch/TurboWarp PostMessage integration
     window.addEventListener("message", (event) => {
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        
-        if (parsed && parsed.type === "set_username") {
-          if (parsed.username) username = parsed.username;
-          return;
-        }
-
-        if (parsed && parsed.type === "set_persona") {
-          currentSystemPrompt = parsed.prompt;
-          const chatBox = document.getElementById("chat-box");
-          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
-          autoScroll();
+        if (parsed && parsed.type === "set_username" && parsed.username) {
+          username = parsed.username;
           return;
         }
       } catch(e) {}
@@ -352,21 +532,8 @@
       }
     });
 
-    window.addEventListener("DOMContentLoaded", () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userParam = urlParams.get("username");
-      const personaParam = urlParams.get("persona");
-      const msgParam = urlParams.get("msg");
-
-      if (userParam) username = decodeURIComponent(userParam);
-      if (personaParam) currentSystemPrompt = decodeURIComponent(personaParam);
-      if (msgParam) sendMessage(decodeURIComponent(msgParam));
-    });
-
     document.getElementById("user-input").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        sendMessage();
-      }
+      if (e.key === "Enter") sendMessage();
     });
   </script>
 
