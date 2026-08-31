@@ -266,7 +266,6 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
-  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -280,7 +279,6 @@
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -631,12 +629,16 @@
           } else {
             window.lastGameHtml = null;
             window.lastGeneratedImage = null;
-            aiOutput = reply;
-            chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
+            
+            // CLEAN PLAIN TEXT: Strip markdown code blocks if present
+            aiOutput = reply.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
+            
+            chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(aiOutput)}</div>`;
           }
         }
 
-        // Send output outward to the TurboWarp Parent Frame automatically
+        // Send output outward to the TurboWarp Parent Frame automatically with debug log
+        console.log("[AI Studio] Broadcasting message to TurboWarp parent frame:", aiOutput);
         window.parent.postMessage({
           plugin: "iframe",
           message: aiOutput
