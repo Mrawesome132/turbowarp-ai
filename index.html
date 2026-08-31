@@ -190,7 +190,9 @@
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
 
-    // Detect if user scrolls up to temporarily disable auto-scroll
+    // Stores Base64 images in memory so we don't pass massive strings inside HTML attributes
+    const imageCache = {};
+
     function handleScroll() {
       const chatBox = document.getElementById("chat-box");
       const isAtBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 30;
@@ -204,12 +206,10 @@
       }
     }
 
-    // Toggle Light / Dark Theme
     function toggleTheme() {
       document.body.classList.toggle("light-mode");
     }
 
-    // Append Image Style Presets and automatically prepend "draw"
     function appendStyle(tag) {
       const inputField = document.getElementById("user-input");
       let currentVal = inputField.value.trim();
@@ -230,25 +230,35 @@
       inputField.focus();
     }
 
-    // Convert Base64 data URL to Blob and open in new tab for direct saving
-    function downloadImage(base64Data) {
+    // Direct Blob download logic via simulated link click
+    function triggerDownload(imageId) {
+      const base64Data = imageCache[imageId];
+      if (!base64Data) return;
+
       try {
         const parts = base64Data.split(';base64,');
-        const contentType = parts[0].split(':')[1];
-        const raw = window.atob(parts[1]);
-        const uInt8Array = new Uint8Array(raw.length);
+        const contentType = parts[0].split(':')[1] || 'image/jpeg';
+        const byteCharacters = atob(parts[1]);
+        const byteNumbers = new Array(byteCharacters.length);
 
-        for (let i = 0; i < raw.length; ++i) {
-          uInt8Array[i] = raw.charCodeAt(i);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
 
-        const blob = new Blob([uInt8Array], { type: contentType });
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: contentType });
         const blobUrl = URL.createObjectURL(blob);
-        
-        // Open the raw image file in a full browser tab
-        window.open(blobUrl, '_blank');
+
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `ai-image-${Date.now()}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
       } catch (e) {
-        alert("Could not open image. You can right-click the image directly in the chat to save it.");
+        alert("Download was blocked. Right-click the image directly and select 'Save image as...'");
       }
     }
 
@@ -260,7 +270,6 @@
       let text = textToSend || inputField.value.trim();
       if (!text) return;
 
-      // Expand style flags into clear prompt instructions
       text = text
         .replace(/--pixelart/gi, "in detailed 16-bit pixel art style")
         .replace(/--anime/gi, "in vibrant high quality anime style")
@@ -305,7 +314,6 @@
         return;
       }
 
-      // Animated 3-dot typing indicator
       chatBox.innerHTML += `
         <div class="message" id="loading">
           <span class="ai">AI:</span>
@@ -331,15 +339,16 @@
         if (loadingElem) loadingElem.remove();
 
         if (data.isImage) {
-          // Render Image + Open/Save Button
+          const imageId = "img_" + Date.now();
+          imageCache[imageId] = data.reply;
+
           chatBox.innerHTML += `
             <div class="message">
               <span class="ai">AI:</span><br>
               <img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
-              <button class="img-action-btn" onclick="downloadImage('${data.reply}')">🖼️ Open Full Image to Save</button>
+              <button class="img-action-btn" onclick="triggerDownload('${imageId}')">📥 Save Image</button>
             </div>`;
         } else {
-          // Render Text
           const reply = data.reply || data.error || "The AI could not generate a reply.";
           chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
         }
@@ -358,7 +367,6 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
-    // Listen for messages from TurboWarp Scratch blocks
     window.addEventListener("message", (event) => {
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
