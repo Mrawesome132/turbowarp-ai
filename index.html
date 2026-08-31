@@ -83,7 +83,6 @@
     const sendBtn = document.getElementById("send-btn");
     const chatBox = document.getElementById("chat-box");
     
-    // Use parameter text if provided, otherwise grab from text input
     const text = textToSend || inputField.value.trim();
 
     if (!text) return;
@@ -118,7 +117,15 @@
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // Check if a message was passed in the URL (e.g. ?msg=Hello)
+  // Listen for postMessage commands from TurboWarp/parent window
+  window.addEventListener("message", (event) => {
+    // If the message sent from TurboWarp is a string, trigger sendMessage
+    if (typeof event.data === "string" && event.data.length > 0) {
+      sendMessage(event.data);
+    }
+  });
+
+  // Check initial URL parameters if provided
   window.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
     const autoMsg = urlParams.get("msg");
@@ -127,7 +134,7 @@
     }
   });
 
-  // Allow pressing Enter to send message
+  // Enter key trigger
   document.getElementById("user-input").addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
       sendMessage();
