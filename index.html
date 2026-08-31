@@ -140,7 +140,7 @@
     }
     .export-btn:hover { border-color: var(--accent-color); }
 
-    /* Lightbox Modal Overlay (Idea #1) */
+    /* Lightbox Modal Overlay */
     .lightbox-modal {
       display: none;
       position: fixed;
@@ -157,19 +157,58 @@
       color: white; font-size: 24px; cursor: pointer;
     }
 
-    /* Game Generator Container */
-    .game-container {
+    /* Game Generator Container & Fullscreen Controls */
+    .game-card {
       margin-top: 8px;
       border: 1px solid var(--border-color);
       border-radius: 6px;
       overflow: hidden;
       background: var(--game-bg);
     }
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--input-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .game-header h3 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .fullscreen-btn {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .fullscreen-btn:hover {
+      opacity: 0.9;
+    }
+    .instructions-box {
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.15);
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .instructions-box ul {
+      margin: 4px 0 0 0;
+      padding-left: 20px;
+    }
     .game-iframe {
       width: 100%;
-      height: 380px;
+      height: 420px;
       border: none;
       background: #ffffff;
+      display: block;
     }
 
     /* Typing Indicator */
@@ -213,11 +252,11 @@
   </div>
 
   <div id="input-container">
-    <input type="text" id="user-input" placeholder='Try "game minecraft clone" or "draw a flying dragon"...' />
+    <input type="text" id="user-input" placeholder='Try "game space shooter" or "draw a flying dragon"...' />
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Lightbox Overlay (Idea 1) -->
+  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -267,11 +306,24 @@
       inputField.focus();
     }
 
+    // Launch iframe into Native Fullscreen
+    function launchFullscreen(iframeId) {
+      const iframe = document.getElementById(iframeId);
+      if (!iframe) return;
+
+      if (iframe.requestFullscreen) {
+        iframe.requestFullscreen();
+      } else if (iframe.webkitRequestFullscreen) { /* Safari */
+        iframe.webkitRequestFullscreen();
+      } else if (iframe.msRequestFullscreen) { /* IE11 */
+        iframe.msRequestFullscreen();
+      }
+    }
+
     // ==========================================
     // ALL 15 IFRAME BYPASS EXPORT WORKAROUNDS
     // ==========================================
 
-    // 1. Lightbox / Modal Overlay
     function export1_Lightbox(id) {
       document.getElementById('lightbox-img').src = imageCache[id];
       document.getElementById('lightbox').style.display = 'flex';
@@ -280,13 +332,11 @@
       document.getElementById('lightbox').style.display = 'none';
     }
 
-    // 2. Open via parent.location
     function export2_ParentLoc(id) {
       try { parent.location.href = imageCache[id]; } 
       catch(e) { window.open(imageCache[id], '_blank'); }
     }
 
-    // 3. Canvas Element Conversion
     function export3_CanvasBlob(id) {
       const img = new Image();
       img.src = imageCache[id];
@@ -302,37 +352,31 @@
       };
     }
 
-    // 4. Data URL Textarea Display
     function export4_Textarea(id) {
       const b64 = imageCache[id];
       prompt("Copy this raw Base64 string and paste into your browser bar:", b64);
     }
 
-    // 5. QR Code Generator Overlay
     function export5_QRCode(id) {
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(imageCache[id].substring(0, 1000))}`;
       window.open(url, '_blank');
     }
 
-    // 6. Cloud Upload Emulation / Copy
     function export6_CloudUpload(id) {
       navigator.clipboard.writeText(imageCache[id]);
       alert("Image payload copied to clipboard for direct remote upload!");
     }
 
-    // 7. window.postMessage to Host
     function export7_PostMessage(id) {
       window.parent.postMessage({ type: 'SAVE_IMAGE', data: imageCache[id] }, '*');
       alert("Sent image save request to host window via postMessage!");
     }
 
-    // 8. Draggable Asset
     function export8_EnableDrag(imgElem) {
       imgElem.draggable = true;
       alert("Drag enabled! Click and drag the image directly onto your desktop or folder.");
     }
 
-    // 9. Web Share API
     async function export9_WebShare(id) {
       if (navigator.share) {
         try {
@@ -344,26 +388,22 @@
       } else { alert("Web Share API unavailable."); }
     }
 
-    // 10. Direct Location Stream
     function export10_LocationStream(id) {
       window.location.href = imageCache[id];
     }
 
-    // 11. Blob Page Window
     function export11_BlobHTML(id) {
       const html = `<html><body style="margin:0;background:#111;display:flex;justify-content:center;align-items:center;height:100vh;"><img src="${imageCache[id]}" style="max-width:90%;"><p style="color:#fff;position:fixed;top:10px;">Right-click to save image</p></body></html>`;
       const blob = new Blob([html], { type: 'text/html' });
       window.open(URL.createObjectURL(blob), '_blank');
     }
 
-    // 12. SVG Wrapper Embed
     function export12_SVGWrapper(id) {
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="${imageCache[id]}" width="512" height="512"/></svg>`;
       const blob = new Blob([svg], { type: 'image/svg+xml' });
       window.open(URL.createObjectURL(blob), '_blank');
     }
 
-    // 13. Auto Select Image Element
     function export13_AutoSelect(imgElem) {
       const range = document.createRange();
       range.selectNode(imgElem);
@@ -372,19 +412,16 @@
       alert("Image element selected! Press Ctrl+C / Cmd+C to copy.");
     }
 
-    // 14. Email Dispatch Link
     function export14_EmailLink(id) {
       window.location.href = `mailto:?subject=AI Generated Image&body=Here is your image base64 code: ${encodeURIComponent(imageCache[id].substring(0, 500))}...`;
     }
 
-    // 15. OS Screenshot Instructions
     function export15_OSInstructions() {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const shortcut = isMac ? "Cmd + Shift + 4" : "Win + Shift + S";
       alert(`Press [ ${shortcut} ] to take a crisp snippet screenshot of the image!`);
     }
 
-    // Helper to generate all 15 action buttons in a neat grid
     function generate15ExportButtons(id) {
       return `
         <div class="export-grid">
@@ -431,7 +468,6 @@
       inputField.value = "";
       sendBtn.disabled = true;
 
-      // Handling Personality Change Request
       if (waitingForNewPersonality) {
         currentSystemPrompt = text;
         waitingForNewPersonality = false;
@@ -451,10 +487,9 @@
       autoScroll();
 
       try {
-        // Enforce Game Generation prompt rules when a game request is triggered
         let finalSystemPrompt = currentSystemPrompt;
         if (isGameRequest) {
-          finalSystemPrompt = "You are a JavaScript game developer. The user wants a playable game written in HTML5 Canvas and JavaScript. Write a COMPLETE, fully functional, self-contained single-file HTML game with CSS and JS included. DO NOT list existing third-party games or open-source projects. DO NOT write conversational explanations. Return ONLY executable HTML code starting with <!DOCTYPE html>.";
+          finalSystemPrompt = "You are a JavaScript game developer. The user wants a playable game written in HTML5 Canvas and JavaScript. BEFORE the code, write a section titled '### INSTRUCTIONS' explaining the objective and controls (e.g., Arrow Keys, WASD, Spacebar). THEN write a COMPLETE, fully functional, self-contained single-file HTML game starting with <!DOCTYPE html>.";
         }
 
         const res = await fetch(WORKER_URL, {
@@ -472,7 +507,6 @@
         if (loadingElem) loadingElem.remove();
 
         if (data.isImage) {
-          // Render Image + 15 Export Bypass Tools
           const imageId = "img_" + Date.now();
           imageCache[imageId] = data.reply;
 
@@ -485,21 +519,49 @@
         } else {
           const reply = data.reply || data.error || "No response received.";
 
-          // Check if response contains generated game code
           if (isGameRequest || reply.includes("<!DOCTYPE html>") || reply.includes("<canvas") || reply.includes("```html")) {
-            const cleanHtml = reply.replace(/```html/gi, '').replace(/```/g, '').trim();
+            
+            // Extract Instructions & HTML Code
+            let instructionsText = "Use keyboard/mouse controls to play.";
+            let cleanHtml = reply;
+
+            if (reply.includes("<!DOCTYPE html>")) {
+              const htmlIndex = reply.indexOf("<!DOCTYPE html>");
+              const rawInstructions = reply.substring(0, htmlIndex).trim();
+              cleanHtml = reply.substring(htmlIndex).replace(/```html/gi, '').replace(/```/g, '').trim();
+
+              if (rawInstructions.length > 5) {
+                instructionsText = escapeHtml(rawInstructions)
+                  .replace(/### Instructions/gi, '')
+                  .replace(/### INSTRUCTIONS/gi, '')
+                  .replace(/\n/g, '<br>');
+              }
+            } else {
+              cleanHtml = reply.replace(/```html/gi, '').replace(/```/g, '').trim();
+            }
+
             const gameBlob = new Blob([cleanHtml], { type: 'text/html' });
             const gameUrl = URL.createObjectURL(gameBlob);
+            const iframeId = "game_iframe_" + Date.now();
 
             chatBox.innerHTML += `
               <div class="message">
-                <span class="ai">🎮 AI Game Generated:</span>
-                <div class="game-container">
-                  <iframe class="game-iframe" src="${gameUrl}"></iframe>
+                <span class="ai">🎮 AI Generated Game:</span>
+                <div class="game-card">
+                  <div class="game-header">
+                    <h3>🕹️ Playable Game View</h3>
+                    <button class="fullscreen-btn" onclick="launchFullscreen('${iframeId}')">
+                      ⛶ Fullscreen
+                    </button>
+                  </div>
+                  <div class="instructions-box">
+                    <strong>📖 Instructions & Controls:</strong>
+                    <div>${instructionsText}</div>
+                  </div>
+                  <iframe id="${iframeId}" class="game-iframe" src="${gameUrl}" allowfullscreen="true"></iframe>
                 </div>
               </div>`;
           } else {
-            // Render Regular Text
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
           }
         }
@@ -518,7 +580,6 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
-    // External listener for Scratch/TurboWarp PostMessage integration
     window.addEventListener("message", (event) => {
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
