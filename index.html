@@ -5,16 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ChatGPT Interface</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      height: 100%;
       margin: 0;
-      padding: 20px;
+      padding: 10px;
+      overflow: hidden; /* Prevents outer scrollbars */
+      font-family: Arial, sans-serif;
       background-color: #343541;
       color: #ffffff;
+      display: flex;
+      flex-direction: column;
+    }
+    h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.1rem;
     }
     #chat-box {
-      height: 300px;
-      overflow-y: auto;
+      flex: 1; /* Takes up all remaining vertical space */
+      overflow-y: auto; /* Only scrolls inside the chat box if messages overflow */
       border: 1px solid #555;
       padding: 10px;
       margin-bottom: 10px;
@@ -23,12 +34,13 @@
     }
     .message {
       margin-bottom: 10px;
+      word-wrap: break-word;
     }
     .user { font-weight: bold; color: #10a37f; }
     .ai { font-weight: bold; color: #ececf1; }
     #input-container {
       display: flex;
-      gap: 10px;
+      gap: 8px;
     }
     input {
       flex: 1;
@@ -37,14 +49,16 @@
       border: 1px solid #555;
       background: #40414f;
       color: white;
+      font-size: 0.9rem;
     }
     button {
-      padding: 10px 20px;
+      padding: 10px 16px;
       border: none;
       background-color: #10a37f;
       color: white;
       border-radius: 5px;
       cursor: pointer;
+      font-size: 0.9rem;
     }
     button:disabled {
       background-color: #666;
@@ -62,7 +76,7 @@
   </div>
 
   <script>
-    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Replace this with your actual .workers.dev URL
+    const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Ensure your actual .workers.dev URL is here!
 
     async function sendMessage() {
       const inputField = document.getElementById("user-input");
@@ -87,16 +101,27 @@
         });
         const data = await res.json();
         
-        document.getElementById("loading").remove();
+        const loadingElem = document.getElementById("loading");
+        if (loadingElem) loadingElem.remove();
+
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${data.reply || data.error}</div>`;
       } catch (err) {
-        document.getElementById("loading").remove();
+        const loadingElem = document.getElementById("loading");
+        if (loadingElem) loadingElem.remove();
+
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
       }
 
       sendBtn.disabled = false;
       chatBox.scrollTop = chatBox.scrollHeight;
     }
+
+    // Allow pressing Enter to send message
+    document.getElementById("user-input").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
   </script>
 
 </body>
