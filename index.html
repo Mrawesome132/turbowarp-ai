@@ -637,12 +637,9 @@
           }
         }
 
-        // Send output outward to the TurboWarp Parent Frame automatically with debug log
-        console.log("[AI Studio] Broadcasting message to TurboWarp parent frame:", aiOutput);
-        window.parent.postMessage({
-          plugin: "iframe",
-          message: aiOutput
-        }, "*");
+        // Send pure string output directly to TurboWarp
+        console.log("[AI Studio] Broadcasting plain text to TurboWarp:", aiOutput);
+        window.parent.postMessage(aiOutput, "*");
 
       } catch (err) {
         const loadingElem = document.getElementById("loading");
