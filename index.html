@@ -122,11 +122,17 @@
   }
 
   // Listen for persona changes or text messages from Scratch
+  // Listen for persona changes or text messages from Scratch
   window.addEventListener("message", (event) => {
     try {
       const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
       if (parsed && parsed.type === "set_persona") {
         currentSystemPrompt = parsed.prompt;
+        
+        // Show confirmation without sending a request to the AI API
+        const chatBox = document.getElementById("chat-box");
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
         return;
       }
     } catch(e) {
