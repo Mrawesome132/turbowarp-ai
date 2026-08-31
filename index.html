@@ -76,7 +76,7 @@
   </div>
 
   <script>
-    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Ensure your worker URL is here!
+    const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Ensure your worker URL is here!
     let currentSystemPrompt = "You are a helpful AI assistant.";
     let username = "User";
     let waitingForNewPersonality = false;
@@ -89,12 +89,10 @@
       const text = textToSend || inputField.value.trim();
       if (!text) return;
 
-      // Render message with dynamic username
       chatBox.innerHTML += `<div class="message"><span class="user">${escapeHtml(username)}:</span> ${escapeHtml(text)}</div>`;
       inputField.value = "";
       sendBtn.disabled = true;
 
-      // Handle follow-up if AI previously asked "What should I update it to?"
       if (waitingForNewPersonality) {
         currentSystemPrompt = text;
         waitingForNewPersonality = false;
@@ -104,10 +102,8 @@
         return;
       }
 
-      // Check if user typed an "update personality" intent in chat
       const lower = text.toLowerCase();
       if (lower.includes("update personality") || lower.includes("change personality") || lower.includes("update your personality") || lower.includes("change your personality")) {
-        // Check if instructions were included in the same message (e.g., "update personality: act like a pirate")
         const splitIndex = lower.indexOf("to ");
         const colonIndex = text.indexOf(":");
         
@@ -131,7 +127,6 @@
         return;
       }
 
-      // Standard AI request
       chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
       chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -150,7 +145,14 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(data.reply || data.error)}</div>`;
+        // Length limit safety check snippet
+        let reply = data.reply || data.error;
+        const maxLength = 300; // Truncates if reply exceeds 300 characters
+        if (reply.length > maxLength) {
+          reply = reply.substring(0, maxLength) + "...";
+        }
+
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
       } catch (err) {
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
@@ -162,23 +164,19 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // Helper to sanitize HTML
     function escapeHtml(str) {
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
-    // Listen for messages from TurboWarp Scratch blocks
     window.addEventListener("message", (event) => {
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         
-        // Handle set_username payload
         if (parsed && parsed.type === "set_username") {
           if (parsed.username) username = parsed.username;
           return;
         }
 
-        // Handle set_persona payload silently
         if (parsed && parsed.type === "set_persona") {
           currentSystemPrompt = parsed.prompt;
           const chatBox = document.getElementById("chat-box");
@@ -187,7 +185,7 @@
           return;
         }
       } catch(e) {
-        // Not JSON, treat as standard text message
+        // Handle standard text
       }
 
       if (typeof event.data === "string" && event.data.length > 0) {
@@ -195,7 +193,6 @@
       }
     });
 
-    // Check URL parameters on load for username or initial prompt/persona
     window.addEventListener("DOMContentLoaded", () => {
       const urlParams = new URLSearchParams(window.location.search);
       const userParam = urlParams.get("username");
@@ -207,7 +204,6 @@
       if (msgParam) sendMessage(decodeURIComponent(msgParam));
     });
 
-    // Enter key listener
     document.getElementById("user-input").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
         sendMessage();
