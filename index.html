@@ -47,9 +47,13 @@
       align-items: center;
       margin-bottom: 8px;
     }
+    .header-actions {
+      display: flex;
+      gap: 6px;
+    }
     h2 { margin: 0; font-size: 1.1rem; }
     
-    .theme-btn {
+    .theme-btn, .action-btn {
       padding: 4px 10px;
       font-size: 0.8rem;
       border-radius: 4px;
@@ -254,7 +258,10 @@
 
   <div class="header">
     <h2>AI Studio (Chat, Image & Game Generator)</h2>
-    <button class="theme-btn" onclick="toggleTheme()">☀️ / 🌙</button>
+    <div class="header-actions">
+      <button class="action-btn" onclick="inspectLastResponse()">💾 Inspect Variable</button>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ / 🌙</button>
+    </div>
   </div>
 
   <div id="chat-box" onscroll="handleScroll()"></div>
@@ -288,6 +295,12 @@
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
 
+    // GLOBAL VARIABLES TO HOLD THE LATEST RESPONSE DATA
+    window.lastResponse = null;
+    window.lastAiText = "";
+    window.lastGeneratedImage = null;
+    window.lastGameHtml = null;
+
     const imageCache = {};
 
     function handleScroll() {
@@ -305,6 +318,15 @@
 
     function toggleTheme() {
       document.body.classList.toggle("light-mode");
+    }
+
+    function inspectLastResponse() {
+      if (!window.lastResponse) {
+        alert("No response saved in variable yet. Send a prompt first!");
+        return;
+      }
+      console.log("Current window.lastResponse variable:", window.lastResponse);
+      prompt("Saved Response Variable (window.lastResponse):", JSON.stringify(window.lastResponse, null, 2));
     }
 
     function appendPrompt(prefix, tag) {
@@ -520,12 +542,27 @@
         });
         const data = await res.json();
         
+        // SAVE RESPONSE TO VARIABLE
+        window.lastResponse = {
+          timestamp: new Date().toISOString(),
+          userPrompt: text,
+          isGame: isGameRequest,
+          isImage: !!data.isImage,
+          rawPayload: data
+        };
+
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
         if (data.isImage) {
           const imageId = "img_" + Date.now();
           imageCache[imageId] = data.reply;
+
+          // Save specific image shortcut variables
+          window.lastGeneratedImage = data.reply;
+          window.lastAiText = "[Image Output]";
+          window.lastGameHtml = null;
+          window.lastResponse.imageSrc = data.reply;
 
           chatBox.innerHTML += `
             <div class="message">
@@ -535,6 +572,7 @@
             </div>`;
         } else {
           const reply = data.reply || data.error || "No response received.";
+          window.lastAiText = reply;
 
           if (isGameRequest || reply.includes("<!DOCTYPE html>") || reply.includes("<canvas") || reply.includes("```html")) {
             
@@ -556,6 +594,12 @@
             } else {
               cleanHtml = reply.replace(/```html/gi, '').replace(/```/g, '').trim();
             }
+
+            // Save specific game shortcut variables
+            window.lastGameHtml = cleanHtml;
+            window.lastGeneratedImage = null;
+            window.lastResponse.gameHtml = cleanHtml;
+            window.lastResponse.instructions = instructionsText;
 
             const gameBlob = new Blob([cleanHtml], { type: 'text/html' });
             const gameUrl = URL.createObjectURL(gameBlob);
@@ -581,6 +625,8 @@
                 </div>
               </div>`;
           } else {
+            window.lastGameHtml = null;
+            window.lastGeneratedImage = null;
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
           }
         }
@@ -588,6 +634,7 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
+        window.lastResponse = { error: err.message };
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend worker.</div>`;
       }
 
