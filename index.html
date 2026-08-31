@@ -76,7 +76,8 @@
   </div>
 
   <script>
-  const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Keep your worker URL here
+  const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Ensure your worker URL is here
+  let currentSystemPrompt = "You are a helpful AI assistant.";
 
   async function sendMessage(textToSend) {
     const inputField = document.getElementById("user-input");
@@ -98,7 +99,10 @@
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ 
+          message: text,
+          systemPrompt: currentSystemPrompt
+        })
       });
       const data = await res.json();
       
@@ -117,24 +121,38 @@
     chatBox.scrollTop = chatBox.scrollHeight;
   }
 
-  // Listen for postMessage commands from TurboWarp/parent window
+  // Listen for persona changes or text messages from Scratch
   window.addEventListener("message", (event) => {
-    // If the message sent from TurboWarp is a string, trigger sendMessage
+    try {
+      const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+      if (parsed && parsed.type === "set_persona") {
+        currentSystemPrompt = parsed.prompt;
+        return;
+      }
+    } catch(e) {
+      // Not JSON, handle as regular text message
+    }
+
     if (typeof event.data === "string" && event.data.length > 0) {
       sendMessage(event.data);
     }
   });
 
-  // Check initial URL parameters if provided
+  // Check URL parameters on load
   window.addEventListener("DOMContentLoaded", () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const autoMsg = urlParams.get("msg");
-    if (autoMsg) {
-      sendMessage(decodeURIComponent(autoMsg));
+    const personaParam = urlParams.get("persona");
+    const msgParam = urlParams.get("msg");
+
+    if (personaParam) {
+      currentSystemPrompt = decodeURIComponent(personaParam);
+    }
+    if (msgParam) {
+      sendMessage(decodeURIComponent(msgParam));
     }
   });
 
-  // Enter key trigger
+  // Enter key support
   document.getElementById("user-input").addEventListener("keypress", function(e) {
     if (e.key === "Enter") {
       sendMessage();
