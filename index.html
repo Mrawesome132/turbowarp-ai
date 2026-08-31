@@ -554,6 +554,8 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
+        let aiOutput = "";
+
         if (data.isImage) {
           const imageId = "img_" + Date.now();
           imageCache[imageId] = data.reply;
@@ -563,6 +565,7 @@
           window.lastAiText = "[Image Output]";
           window.lastGameHtml = null;
           window.lastResponse.imageSrc = data.reply;
+          aiOutput = data.reply;
 
           chatBox.innerHTML += `
             <div class="message">
@@ -600,6 +603,7 @@
             window.lastGeneratedImage = null;
             window.lastResponse.gameHtml = cleanHtml;
             window.lastResponse.instructions = instructionsText;
+            aiOutput = cleanHtml;
 
             const gameBlob = new Blob([cleanHtml], { type: 'text/html' });
             const gameUrl = URL.createObjectURL(gameBlob);
@@ -627,9 +631,17 @@
           } else {
             window.lastGameHtml = null;
             window.lastGeneratedImage = null;
+            aiOutput = reply;
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
           }
         }
+
+        // Send output outward to the TurboWarp Parent Frame automatically
+        window.parent.postMessage({
+          plugin: "iframe",
+          message: aiOutput
+        }, "*");
+
       } catch (err) {
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
