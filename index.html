@@ -76,7 +76,7 @@
   </div>
 
   <script>
-    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Ensure your worker URL is here!
+    const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Replace with your Cloudflare Worker URL
     let currentSystemPrompt = "You are a helpful AI assistant.";
     let username = "User";
     let waitingForNewPersonality = false;
@@ -93,6 +93,7 @@
       inputField.value = "";
       sendBtn.disabled = true;
 
+      // If the AI previously asked what to update its personality to
       if (waitingForNewPersonality) {
         currentSystemPrompt = text;
         waitingForNewPersonality = false;
@@ -102,6 +103,7 @@
         return;
       }
 
+      // Check if user typed a personality change command directly in the chat input
       const lower = text.toLowerCase();
       if (lower.includes("update personality") || lower.includes("change personality") || lower.includes("update your personality") || lower.includes("change your personality")) {
         const splitIndex = lower.indexOf("to ");
@@ -145,13 +147,7 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        // Length limit safety check snippet
-        let reply = data.reply || data.error;
-        const maxLength = 300; // Truncates if reply exceeds 300 characters
-        if (reply.length > maxLength) {
-          reply = reply.substring(0, maxLength) + "...";
-        }
-
+        const reply = data.reply || data.error;
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(reply)}</div>`;
       } catch (err) {
         const loadingElem = document.getElementById("loading");
@@ -168,15 +164,18 @@
       return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
 
+    // Listen for messages from TurboWarp Scratch blocks
     window.addEventListener("message", (event) => {
       try {
         const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
         
+        // Handle set_username payload
         if (parsed && parsed.type === "set_username") {
           if (parsed.username) username = parsed.username;
           return;
         }
 
+        // Handle set_persona payload silently
         if (parsed && parsed.type === "set_persona") {
           currentSystemPrompt = parsed.prompt;
           const chatBox = document.getElementById("chat-box");
@@ -185,7 +184,7 @@
           return;
         }
       } catch(e) {
-        // Handle standard text
+        // Handle regular text message
       }
 
       if (typeof event.data === "string" && event.data.length > 0) {
@@ -193,6 +192,7 @@
       }
     });
 
+    // Check URL parameters on load
     window.addEventListener("DOMContentLoaded", () => {
       const urlParams = new URLSearchParams(window.location.search);
       const userParam = urlParams.get("username");
@@ -204,6 +204,7 @@
       if (msgParam) sendMessage(decodeURIComponent(msgParam));
     });
 
+    // Enter key support
     document.getElementById("user-input").addEventListener("keypress", function(e) {
       if (e.key === "Enter") {
         sendMessage();
