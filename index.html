@@ -1,28 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>TurboWarp AI</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChatGPT Interface</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #343541;
+      color: #ffffff;
+    }
+    #chat-box {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #555;
+      padding: 10px;
+      margin-bottom: 10px;
+      background-color: #444654;
+      border-radius: 5px;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .user { font-weight: bold; color: #10a37f; }
+    .ai { font-weight: bold; color: #ececf1; }
+    #input-container {
+      display: flex;
+      gap: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #555;
+      background: #40414f;
+      color: white;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background-color: #10a37f;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #666;
+    }
+  </style>
 </head>
 <body>
 
-<h2>TurboWarp AI</h2>
+  <h2>AI Chat</h2>
+  <div id="chat-box"></div>
 
-<input id="message" placeholder="Type a message">
-<button onclick="sendMessage()">Send</button>
+  <div id="input-container">
+    <input type="text" id="user-input" placeholder="Type a message..." />
+    <button id="send-btn" onclick="sendMessage()">Send</button>
+  </div>
 
-<p id="output"></p>
+  <script>
+    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Replace this with your actual .workers.dev URL
 
-<script>
-async function sendMessage() {
-  const message = document.getElementById("message").value;
-  document.getElementById("output").textContent = "Thinking...";
+    async function sendMessage() {
+      const inputField = document.getElementById("user-input");
+      const sendBtn = document.getElementById("send-btn");
+      const chatBox = document.getElementById("chat-box");
+      const text = inputField.value.trim();
 
-  // We'll connect the AI here in the next step.
-  document.getElementById("output").textContent =
-    "You said: " + message;
-}
-</script>
+      if (!text) return;
+
+      chatBox.innerHTML += `<div class="message"><span class="user">You:</span> ${text}</div>`;
+      inputField.value = "";
+      sendBtn.disabled = true;
+
+      chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        
+        document.getElementById("loading").remove();
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${data.reply || data.error}</div>`;
+      } catch (err) {
+        document.getElementById("loading").remove();
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
+      }
+
+      sendBtn.disabled = false;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
 
 </body>
 </html>
