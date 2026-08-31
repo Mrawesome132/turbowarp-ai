@@ -76,53 +76,64 @@
   </div>
 
   <script>
-    const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Ensure your actual .workers.dev URL is here!
+  const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; // Keep your worker URL here
 
-    async function sendMessage() {
-      const inputField = document.getElementById("user-input");
-      const sendBtn = document.getElementById("send-btn");
-      const chatBox = document.getElementById("chat-box");
-      const text = inputField.value.trim();
+  async function sendMessage(textToSend) {
+    const inputField = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+    const chatBox = document.getElementById("chat-box");
+    
+    // Use parameter text if provided, otherwise grab from text input
+    const text = textToSend || inputField.value.trim();
 
-      if (!text) return;
+    if (!text) return;
 
-      chatBox.innerHTML += `<div class="message"><span class="user">You:</span> ${text}</div>`;
-      inputField.value = "";
-      sendBtn.disabled = true;
+    chatBox.innerHTML += `<div class="message"><span class="user">You:</span> ${text}</div>`;
+    inputField.value = "";
+    sendBtn.disabled = true;
 
-      chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
-      chatBox.scrollTop = chatBox.scrollHeight;
+    chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-      try {
-        const res = await fetch(WORKER_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-        const data = await res.json();
-        
-        const loadingElem = document.getElementById("loading");
-        if (loadingElem) loadingElem.remove();
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      
+      const loadingElem = document.getElementById("loading");
+      if (loadingElem) loadingElem.remove();
 
-        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${data.reply || data.error}</div>`;
-      } catch (err) {
-        const loadingElem = document.getElementById("loading");
-        if (loadingElem) loadingElem.remove();
+      chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${data.reply || data.error}</div>`;
+    } catch (err) {
+      const loadingElem = document.getElementById("loading");
+      if (loadingElem) loadingElem.remove();
 
-        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
-      }
-
-      sendBtn.disabled = false;
-      chatBox.scrollTop = chatBox.scrollHeight;
+      chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
     }
 
-    // Allow pressing Enter to send message
-    document.getElementById("user-input").addEventListener("keypress", function(e) {
-      if (e.key === "Enter") {
-        sendMessage();
-      }
-    });
-  </script>
+    sendBtn.disabled = false;
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  // Check if a message was passed in the URL (e.g. ?msg=Hello)
+  window.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const autoMsg = urlParams.get("msg");
+    if (autoMsg) {
+      sendMessage(decodeURIComponent(autoMsg));
+    }
+  });
+
+  // Allow pressing Enter to send message
+  document.getElementById("user-input").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  });
+</script>
 
 </body>
 </html>
