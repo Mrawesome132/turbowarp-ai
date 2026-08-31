@@ -25,9 +25,7 @@
       --ai-text-color: #353740;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     html, body {
       height: 100%;
       margin: 0;
@@ -46,10 +44,7 @@
       align-items: center;
       margin-bottom: 10px;
     }
-    h2 {
-      margin: 0;
-      font-size: 1.1rem;
-    }
+    h2 { margin: 0; font-size: 1.1rem; }
     .theme-btn {
       padding: 4px 10px;
       font-size: 0.8rem;
@@ -68,19 +63,11 @@
       background-color: var(--chat-bg);
       border-radius: 5px;
     }
-    .message {
-      margin-bottom: 12px;
-      word-wrap: break-word;
-    }
+    .message { margin-bottom: 12px; word-wrap: break-word; }
     .user { font-weight: bold; color: var(--accent-color); }
     .ai { font-weight: bold; color: var(--ai-text-color); }
 
-    /* Style Tags Toolbar */
-    #style-bar {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
+    #style-bar { display: flex; gap: 6px; margin-bottom: 8px; }
     .style-tag {
       background: var(--input-bg);
       border: 1px solid var(--border-color);
@@ -90,14 +77,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    .style-tag:hover {
-      border-color: var(--accent-color);
-    }
+    .style-tag:hover { border-color: var(--accent-color); }
 
-    #input-container {
-      display: flex;
-      gap: 8px;
-    }
+    #input-container { display: flex; gap: 8px; }
     input {
       flex: 1;
       padding: 10px;
@@ -116,14 +98,15 @@
       cursor: pointer;
       font-size: 0.9rem;
     }
-    button.send-btn:disabled {
-      background-color: #666;
+    button.send-btn:disabled { background-color: #666; }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
     }
 
-    /* Save/Open Button for Images */
     .img-action-btn {
-      display: inline-block;
-      margin-top: 6px;
       padding: 6px 12px;
       font-size: 0.8rem;
       color: white;
@@ -132,11 +115,8 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    .img-action-btn:hover {
-      opacity: 0.9;
-    }
+    .img-action-btn:hover { opacity: 0.9; }
 
-    /* Typing Indicator Animation */
     .typing-indicator {
       display: inline-flex;
       align-items: center;
@@ -168,7 +148,6 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
-  <!-- Style Presets Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendStyle('--pixelart')">👾 Pixel Art</button>
     <button class="style-tag" onclick="appendStyle('--anime')">🎨 Anime</button>
@@ -182,7 +161,6 @@
   </div>
 
   <script>
-    // --- WORKER URL PLACEHOLDER ---
     const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; 
     
     let currentSystemPrompt = "You are a helpful AI assistant.";
@@ -190,7 +168,6 @@
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
 
-    // Stores Base64 images in memory so we don't pass massive strings inside HTML attributes
     const imageCache = {};
 
     function handleScroll() {
@@ -230,35 +207,18 @@
       inputField.focus();
     }
 
-    // Direct Blob download logic via simulated link click
-    function triggerDownload(imageId) {
+    // Copy raw image data URL to clipboard as an iframe bypass
+    async function copyImageData(imageId, btnElement) {
       const base64Data = imageCache[imageId];
       if (!base64Data) return;
 
       try {
-        const parts = base64Data.split(';base64,');
-        const contentType = parts[0].split(':')[1] || 'image/jpeg';
-        const byteCharacters = atob(parts[1]);
-        const byteNumbers = new Array(byteCharacters.length);
-
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: contentType });
-        const blobUrl = URL.createObjectURL(blob);
-
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `ai-image-${Date.now()}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
-      } catch (e) {
-        alert("Download was blocked. Right-click the image directly and select 'Save image as...'");
+        await navigator.clipboard.writeText(base64Data);
+        const originalText = btnElement.innerText;
+        btnElement.innerText = "📋 Copied! Paste in New Tab";
+        setTimeout(() => { btnElement.innerText = originalText; }, 3000);
+      } catch (err) {
+        alert("Right-click directly on the image above and select 'Save image as...' or 'Copy image'.");
       }
     }
 
@@ -346,7 +306,9 @@
             <div class="message">
               <span class="ai">AI:</span><br>
               <img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
-              <button class="img-action-btn" onclick="triggerDownload('${imageId}')">📥 Save Image</button>
+              <div class="btn-group">
+                <button class="img-action-btn" onclick="copyImageData('${imageId}', this)">📋 Copy Image URL</button>
+              </div>
             </div>`;
         } else {
           const reply = data.reply || data.error || "The AI could not generate a reply.";
