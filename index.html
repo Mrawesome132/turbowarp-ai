@@ -12,7 +12,7 @@
       height: 100%;
       margin: 0;
       padding: 10px;
-      overflow: hidden; /* Prevents outer scrollbars */
+      overflow: hidden;
       font-family: Arial, sans-serif;
       background-color: #343541;
       color: #ffffff;
@@ -24,8 +24,8 @@
       font-size: 1.1rem;
     }
     #chat-box {
-      flex: 1; /* Takes up all remaining vertical space */
-      overflow-y: auto; /* Only scrolls inside the chat box if messages overflow */
+      flex: 1;
+      overflow-y: auto;
       border: 1px solid #555;
       padding: 10px;
       margin-bottom: 10px;
@@ -76,95 +76,144 @@
   </div>
 
   <script>
-  const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Ensure your worker URL is here
-  let currentSystemPrompt = "You are a helpful AI assistant.";
+    const WORKER_URL = "YOUR_WORKER_URL_HERE"; // Ensure your worker URL is here!
+    let currentSystemPrompt = "You are a helpful AI assistant.";
+    let username = "User";
+    let waitingForNewPersonality = false;
 
-  async function sendMessage(textToSend) {
-    const inputField = document.getElementById("user-input");
-    const sendBtn = document.getElementById("send-btn");
-    const chatBox = document.getElementById("chat-box");
-    
-    const text = textToSend || inputField.value.trim();
-
-    if (!text) return;
-
-    chatBox.innerHTML += `<div class="message"><span class="user">You:</span> ${text}</div>`;
-    inputField.value = "";
-    sendBtn.disabled = true;
-
-    chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
-    chatBox.scrollTop = chatBox.scrollHeight;
-
-    try {
-      const res = await fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          message: text,
-          systemPrompt: currentSystemPrompt
-        })
-      });
-      const data = await res.json();
+    async function sendMessage(textToSend) {
+      const inputField = document.getElementById("user-input");
+      const sendBtn = document.getElementById("send-btn");
+      const chatBox = document.getElementById("chat-box");
       
-      const loadingElem = document.getElementById("loading");
-      if (loadingElem) loadingElem.remove();
+      const text = textToSend || inputField.value.trim();
+      if (!text) return;
 
-      chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${data.reply || data.error}</div>`;
-    } catch (err) {
-      const loadingElem = document.getElementById("loading");
-      if (loadingElem) loadingElem.remove();
+      // Render message with dynamic username
+      chatBox.innerHTML += `<div class="message"><span class="user">${escapeHtml(username)}:</span> ${escapeHtml(text)}</div>`;
+      inputField.value = "";
+      sendBtn.disabled = true;
 
-      chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
-    }
-
-    sendBtn.disabled = false;
-    chatBox.scrollTop = chatBox.scrollHeight;
-  }
-
-  // Listen for persona changes or text messages from Scratch
-  // Listen for persona changes or text messages from Scratch
-  window.addEventListener("message", (event) => {
-    try {
-      const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-      if (parsed && parsed.type === "set_persona") {
-        currentSystemPrompt = parsed.prompt;
-        
-        // Show confirmation without sending a request to the AI API
-        const chatBox = document.getElementById("chat-box");
+      // Handle follow-up if AI previously asked "What should I update it to?"
+      if (waitingForNewPersonality) {
+        currentSystemPrompt = text;
+        waitingForNewPersonality = false;
         chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
+        sendBtn.disabled = false;
         chatBox.scrollTop = chatBox.scrollHeight;
         return;
       }
-    } catch(e) {
-      // Not JSON, handle as regular text message
+
+      // Check if user typed an "update personality" intent in chat
+      const lower = text.toLowerCase();
+      if (lower.includes("update personality") || lower.includes("change personality") || lower.includes("update your personality") || lower.includes("change your personality")) {
+        // Check if instructions were included in the same message (e.g., "update personality: act like a pirate")
+        const splitIndex = lower.indexOf("to ");
+        const colonIndex = text.indexOf(":");
+        
+        let newPrompt = "";
+        if (colonIndex !== -1) {
+          newPrompt = text.substring(colonIndex + 1).trim();
+        } else if (splitIndex !== -1) {
+          newPrompt = text.substring(splitIndex + 3).trim();
+        }
+
+        if (newPrompt) {
+          currentSystemPrompt = newPrompt;
+          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
+        } else {
+          waitingForNewPersonality = true;
+          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> What should I update my personality to?</div>`;
+        }
+
+        sendBtn.disabled = false;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+      }
+
+      // Standard AI request
+      chatBox.innerHTML += `<div class="message" id="loading"><span class="ai">AI:</span> Thinking...</div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const res = await fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            message: text,
+            systemPrompt: currentSystemPrompt,
+            username: username
+          })
+        });
+        const data = await res.json();
+        
+        const loadingElem = document.getElementById("loading");
+        if (loadingElem) loadingElem.remove();
+
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(data.reply || data.error)}</div>`;
+      } catch (err) {
+        const loadingElem = document.getElementById("loading");
+        if (loadingElem) loadingElem.remove();
+
+        chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Error connecting to backend.</div>`;
+      }
+
+      sendBtn.disabled = false;
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    if (typeof event.data === "string" && event.data.length > 0) {
-      sendMessage(event.data);
+    // Helper to sanitize HTML
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-  });
 
-  // Check URL parameters on load
-  window.addEventListener("DOMContentLoaded", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const personaParam = urlParams.get("persona");
-    const msgParam = urlParams.get("msg");
+    // Listen for messages from TurboWarp Scratch blocks
+    window.addEventListener("message", (event) => {
+      try {
+        const parsed = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        
+        // Handle set_username payload
+        if (parsed && parsed.type === "set_username") {
+          if (parsed.username) username = parsed.username;
+          return;
+        }
 
-    if (personaParam) {
-      currentSystemPrompt = decodeURIComponent(personaParam);
-    }
-    if (msgParam) {
-      sendMessage(decodeURIComponent(msgParam));
-    }
-  });
+        // Handle set_persona payload silently
+        if (parsed && parsed.type === "set_persona") {
+          currentSystemPrompt = parsed.prompt;
+          const chatBox = document.getElementById("chat-box");
+          chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> Updated personality.</div>`;
+          chatBox.scrollTop = chatBox.scrollHeight;
+          return;
+        }
+      } catch(e) {
+        // Not JSON, treat as standard text message
+      }
 
-  // Enter key support
-  document.getElementById("user-input").addEventListener("keypress", function(e) {
-    if (e.key === "Enter") {
-      sendMessage();
-    }
-  });
-</script>
+      if (typeof event.data === "string" && event.data.length > 0) {
+        sendMessage(event.data);
+      }
+    });
+
+    // Check URL parameters on load for username or initial prompt/persona
+    window.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userParam = urlParams.get("username");
+      const personaParam = urlParams.get("persona");
+      const msgParam = urlParams.get("msg");
+
+      if (userParam) username = decodeURIComponent(userParam);
+      if (personaParam) currentSystemPrompt = decodeURIComponent(personaParam);
+      if (msgParam) sendMessage(decodeURIComponent(msgParam));
+    });
+
+    // Enter key listener
+    document.getElementById("user-input").addEventListener("keypress", function(e) {
+      if (e.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
 
 </body>
 </html>
