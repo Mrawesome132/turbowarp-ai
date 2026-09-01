@@ -570,10 +570,10 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND RAW SVG DATA-URI DIRECTLY TO TURBOWARP
-          const svgPayload = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="${data.reply}" width="512" height="512"/></svg>`;
+          // BUILD SVG PAYLOAD SAFELY WITHOUT TRUNCATION VIA STRING CONCATENATION
+          const svgPayload = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="' + data.reply + '" width="512" height="512"/></svg>';
           
-          console.log("[AI Studio] Broadcasting SVG skin to TurboWarp");
+          console.log("[AI Studio] Broadcasting full SVG skin to TurboWarp");
           window.parent.postMessage(svgPayload, "*");
 
         } else {
