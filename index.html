@@ -570,15 +570,11 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND SVG WRAPPED IMAGE PAYLOAD TO TURBOWARP SKINS EXTENSION
+          // SEND RAW SVG DATA-URI DIRECTLY TO TURBOWARP
           const svgPayload = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="${data.reply}" width="512" height="512"/></svg>`;
           
-          console.log("[AI Studio] Broadcasting SVG skin wrapper to TurboWarp");
-          window.parent.postMessage({
-            plugin: "iframe",
-            type: "AI_IMAGE",
-            data: svgPayload
-          }, "*");
+          console.log("[AI Studio] Broadcasting SVG skin to TurboWarp");
+          window.parent.postMessage(svgPayload, "*");
 
         } else {
           const reply = data.reply || data.error || "No response received.";
