@@ -266,7 +266,6 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
-  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -280,7 +279,6 @@
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -554,26 +552,14 @@
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        let aiOutput = "";
-
         if (data.isImage) {
           const imageId = "img_" + Date.now();
           imageCache[imageId] = data.reply;
 
-          // Save specific image shortcut variables
           window.lastGeneratedImage = data.reply;
           window.lastAiText = "[Image Output]";
           window.lastGameHtml = null;
           window.lastResponse.imageSrc = data.reply;
-
-          // CONVERT BASE64 DATA STRING TO A SAFE BLOB URL FOR TURBOWARP SKINS
-          try {
-            const responseBlob = await fetch(data.reply);
-            const blobObj = await responseBlob.blob();
-            aiOutput = URL.createObjectURL(blobObj);
-          } catch(e) {
-            aiOutput = data.reply; // Fallback
-          }
 
           chatBox.innerHTML += `
             <div class="message">
@@ -581,13 +567,21 @@
               <img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
               ${generate15ExportButtons(imageId)}
             </div>`;
+
+          // SEND STRUCTURED IMAGE PAYLOAD DIRECTLY TO TURBOWARP
+          console.log("[AI Studio] Broadcasting structured image payload to TurboWarp");
+          window.parent.postMessage({
+            plugin: "iframe",
+            type: "AI_IMAGE",
+            data: data.reply
+          }, "*");
+
         } else {
           const reply = data.reply || data.error || "No response received.";
           window.lastAiText = reply;
 
+          let aiOutput = "";
           if (isGameRequest || reply.includes("<!DOCTYPE html>") || reply.includes("<canvas") || reply.includes("```html")) {
-            
-            // Extract Instructions & HTML Code
             let instructionsText = "Use keyboard/mouse controls to play.";
             let cleanHtml = reply;
 
@@ -606,7 +600,6 @@
               cleanHtml = reply.replace(/```html/gi, '').replace(/```/g, '').trim();
             }
 
-            // Save specific game shortcut variables
             window.lastGameHtml = cleanHtml;
             window.lastGeneratedImage = null;
             window.lastResponse.gameHtml = cleanHtml;
@@ -639,17 +632,14 @@
           } else {
             window.lastGameHtml = null;
             window.lastGeneratedImage = null;
-            
-            // CLEAN PLAIN TEXT: Strip markdown code blocks if present
             aiOutput = reply.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
-            
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(aiOutput)}</div>`;
           }
-        }
 
-        // Send output string directly to TurboWarp
-        console.log("[AI Studio] Broadcasting output to TurboWarp:", aiOutput.substring(0, 50) + "...");
-        window.parent.postMessage(aiOutput, "*");
+          // SEND PLAIN TEXT STRING TO TURBOWARP
+          console.log("[AI Studio] Broadcasting plain text to TurboWarp:", aiOutput.substring(0, 50) + "...");
+          window.parent.postMessage(aiOutput, "*");
+        }
 
       } catch (err) {
         const loadingElem = document.getElementById("loading");
