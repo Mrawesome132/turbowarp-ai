@@ -565,7 +565,15 @@
           window.lastAiText = "[Image Output]";
           window.lastGameHtml = null;
           window.lastResponse.imageSrc = data.reply;
-          aiOutput = data.reply; // Contains the full data:image/... base64 string
+
+          // CONVERT BASE64 DATA STRING TO A SAFE BLOB URL FOR TURBOWARP SKINS
+          try {
+            const responseBlob = await fetch(data.reply);
+            const blobObj = await responseBlob.blob();
+            aiOutput = URL.createObjectURL(blobObj);
+          } catch(e) {
+            aiOutput = data.reply; // Fallback
+          }
 
           chatBox.innerHTML += `
             <div class="message">
