@@ -266,6 +266,7 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
+  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -279,6 +280,7 @@
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
+  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -568,12 +570,14 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND STRUCTURED IMAGE PAYLOAD DIRECTLY TO TURBOWARP
-          console.log("[AI Studio] Broadcasting structured image payload to TurboWarp");
+          // SEND SVG WRAPPED IMAGE PAYLOAD TO TURBOWARP SKINS EXTENSION
+          const svgPayload = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><image href="${data.reply}" width="512" height="512"/></svg>`;
+          
+          console.log("[AI Studio] Broadcasting SVG skin wrapper to TurboWarp");
           window.parent.postMessage({
             plugin: "iframe",
             type: "AI_IMAGE",
-            data: data.reply
+            data: svgPayload
           }, "*");
 
         } else {
