@@ -266,6 +266,7 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
+  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -279,6 +280,7 @@
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
+  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -563,7 +565,7 @@
           window.lastAiText = "[Image Output]";
           window.lastGameHtml = null;
           window.lastResponse.imageSrc = data.reply;
-          aiOutput = data.reply;
+          aiOutput = data.reply; // Contains the full data:image/... base64 string
 
           chatBox.innerHTML += `
             <div class="message">
@@ -637,8 +639,8 @@
           }
         }
 
-        // Send pure string output directly to TurboWarp
-        console.log("[AI Studio] Broadcasting plain text to TurboWarp:", aiOutput);
+        // Send output string directly to TurboWarp
+        console.log("[AI Studio] Broadcasting output to TurboWarp:", aiOutput.substring(0, 50) + "...");
         window.parent.postMessage(aiOutput, "*");
 
       } catch (err) {
