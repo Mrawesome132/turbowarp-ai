@@ -570,9 +570,9 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND RAW IMAGE DATA URI DIRECTLY TO AVOID LENGTH TRUNCATION
-          console.log("[AI Studio] Broadcasting raw image data to TurboWarp");
-          window.parent.postMessage(data.reply, "*");
+          // SEND STRUCTURED JSON OBJECT TO AVOID TURBOWARP STRING CHOKING
+          console.log("[AI Studio] Broadcasting structured image meta to TurboWarp");
+          window.parent.postMessage({ type: 'AI_IMAGE_READY', url: data.reply }, "*");
 
         } else {
           const reply = data.reply || data.error || "No response received.";
