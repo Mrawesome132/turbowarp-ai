@@ -265,7 +265,6 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
-  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -279,7 +278,6 @@
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
-  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -477,7 +475,7 @@
         </div>`;
     }
 
-    // MAIN CHAT & RESPONSE LOGIC
+    // CHAT & GAME GENERATOR MAIN LOGIC
     async function sendMessage(textToSend) {
       const inputField = document.getElementById("user-input");
       const sendBtn = document.getElementById("send-btn");
@@ -561,7 +559,7 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // STANDARDIZED JSON PAYLOAD FOR TURBOWARP RECEIVER
+          // BROADCAST JSON PAYLOAD TO TURBOWARP
           const imagePayload = JSON.stringify({
             type: "IMAGE",
             url: data.reply
