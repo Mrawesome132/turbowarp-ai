@@ -570,7 +570,7 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND STRUCTURED JSON OBJECT TO AVOID TURBOWARP STRING CHOKING
+          // SEND STRUCTURED JSON OBJECT TO TURBOWARP
           console.log("[AI Studio] Broadcasting structured image meta to TurboWarp");
           window.parent.postMessage({ type: 'AI_IMAGE_READY', url: data.reply }, "*");
 
