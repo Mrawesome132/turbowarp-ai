@@ -118,7 +118,7 @@
     }
     button.send-btn:disabled { background-color: #666; }
 
-    /* 15-Workaround Export Grid */
+    /* Export Grid */
     .export-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -161,7 +161,7 @@
       color: white; font-size: 24px; cursor: pointer;
     }
 
-    /* Game Generator Container - Environment Responsive Scaling */
+    /* Game Generator Container */
     .game-card {
       margin-top: 8px;
       border: 1px solid var(--border-color);
@@ -212,7 +212,6 @@
       padding-left: 20px;
     }
 
-    /* Iframe environmental fit settings */
     .iframe-wrapper {
       position: relative;
       width: 100%;
@@ -345,24 +344,20 @@
       inputField.focus();
     }
 
-    // Launch iframe into Native Fullscreen
     function launchFullscreen(iframeId) {
       const iframe = document.getElementById(iframeId);
       if (!iframe) return;
 
       if (iframe.requestFullscreen) {
         iframe.requestFullscreen();
-      } else if (iframe.webkitRequestFullscreen) { /* Safari */
+      } else if (iframe.webkitRequestFullscreen) {
         iframe.webkitRequestFullscreen();
-      } else if (iframe.msRequestFullscreen) { /* IE11 */
+      } else if (iframe.msRequestFullscreen) {
         iframe.msRequestFullscreen();
       }
     }
 
-    // ==========================================
-    // ALL 15 IFRAME BYPASS EXPORT WORKAROUNDS
-    // ==========================================
-
+    // EXPORT WORKAROUNDS
     function export1_Lightbox(id) {
       document.getElementById('lightbox-img').src = imageCache[id];
       document.getElementById('lightbox').style.display = 'flex';
@@ -386,7 +381,7 @@
         ctx.drawImage(img, 0, 0);
         cvs.toBlob(blob => {
           const u = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = u; a.download = 'ai-image.jpg'; a.click();
+          const a = document.createElement('a'); a.href = u; a.download = 'ai-image.png'; a.click();
         });
       };
     }
@@ -407,7 +402,7 @@
     }
 
     function export7_PostMessage(id) {
-      window.parent.postMessage({ type: 'SAVE_IMAGE', data: imageCache[id] }, '*');
+      window.parent.postMessage(JSON.stringify({ type: 'IMAGE', url: imageCache[id] }), '*');
       alert("Sent image save request to host window via postMessage!");
     }
 
@@ -421,7 +416,7 @@
         try {
           const res = await fetch(imageCache[id]);
           const blob = await res.blob();
-          const file = new File([blob], 'ai-image.jpg', { type: 'image/jpeg' });
+          const file = new File([blob], 'ai-image.png', { type: 'image/png' });
           await navigator.share({ files: [file], title: 'AI Image' });
         } catch(e) { alert("Web Share not supported in this iframe context."); }
       } else { alert("Web Share API unavailable."); }
@@ -482,10 +477,7 @@
         </div>`;
     }
 
-    // ==========================================
-    // CHAT & GAME GENERATOR MAIN LOGIC
-    // ==========================================
-
+    // MAIN CHAT & RESPONSE LOGIC
     async function sendMessage(textToSend) {
       const inputField = document.getElementById("user-input");
       const sendBtn = document.getElementById("send-btn");
@@ -542,7 +534,6 @@
         });
         const data = await res.json();
         
-        // SAVE RESPONSE TO VARIABLE
         window.lastResponse = {
           timestamp: new Date().toISOString(),
           userPrompt: text,
@@ -570,9 +561,13 @@
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // SEND STRUCTURED JSON OBJECT TO TURBOWARP
-          console.log("[AI Studio] Broadcasting structured image meta to TurboWarp");
-          window.parent.postMessage({ type: 'AI_IMAGE_READY', url: data.reply }, "*");
+          // STANDARDIZED JSON PAYLOAD FOR TURBOWARP RECEIVER
+          const imagePayload = JSON.stringify({
+            type: "IMAGE",
+            url: data.reply
+          });
+          console.log("[AI Studio] Broadcasting image JSON to TurboWarp:", imagePayload.substring(0, 80) + "...");
+          window.parent.postMessage(imagePayload, "*");
 
         } else {
           const reply = data.reply || data.error || "No response received.";
@@ -627,16 +622,29 @@
                   </div>
                 </div>
               </div>`;
+
+            // BROADCAST GAME JSON TO TURBOWARP
+            const gamePayload = JSON.stringify({
+              type: "GAME",
+              content: aiOutput,
+              instructions: instructionsText
+            });
+            window.parent.postMessage(gamePayload, "*");
+
           } else {
             window.lastGameHtml = null;
             window.lastGeneratedImage = null;
             aiOutput = reply.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(aiOutput)}</div>`;
-          }
 
-          // SEND PLAIN TEXT STRING TO TURBOWARP
-          console.log("[AI Studio] Broadcasting plain text to TurboWarp:", aiOutput.substring(0, 50) + "...");
-          window.parent.postMessage(aiOutput, "*");
+            // BROADCAST PLAIN TEXT JSON TO TURBOWARP
+            const textPayload = JSON.stringify({
+              type: "TEXT",
+              content: aiOutput
+            });
+            console.log("[AI Studio] Broadcasting text JSON to TurboWarp:", textPayload.substring(0, 80) + "...");
+            window.parent.postMessage(textPayload, "*");
+          }
         }
 
       } catch (err) {
