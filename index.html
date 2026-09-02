@@ -258,6 +258,7 @@
   <div class="header">
     <h2>AI Studio (Chat, Image & Game Generator)</h2>
     <div class="header-actions">
+      <button class="action-btn" onclick="clearMemory()">🧹 Clear Memory</button>
       <button class="action-btn" onclick="inspectLastResponse()">💾 Inspect Variable</button>
       <button class="theme-btn" onclick="toggleTheme()">☀️ / 🌙</button>
     </div>
@@ -265,6 +266,7 @@
 
   <div id="chat-box" onscroll="handleScroll()"></div>
 
+  <!-- Mode Toolbar -->
   <div id="style-bar">
     <button class="style-tag" onclick="appendPrompt('game ', 'create a playable 2D/3D browser game of ')">🎮 Make Game</button>
     <button class="style-tag" onclick="appendPrompt('draw ', '--pixelart')">👾 Pixel Art</button>
@@ -274,10 +276,11 @@
   </div>
 
   <div id="input-container">
-    <input type="text" id="user-input" placeholder='Try "game space shooter" or "draw a flying dragon"...' />
+    <input type="text" id="user-input" placeholder='Try "draw a dog", "make it ride a skateboard", or "create a game"...' />
     <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
   </div>
 
+  <!-- Lightbox Overlay -->
   <div id="lightbox" class="lightbox-modal">
     <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
     <p style="color: white; margin-bottom: 8px;">Right-click or press & hold image below to save:</p>
@@ -287,10 +290,21 @@
   <script>
     const WORKER_URL = "https://turbowarp-ai.carrollnoah370.workers.dev/"; 
     
+    // Replace with your actual GitHub Raw URL
+    const SYSTEM_PROMPT_FILE_URL = "https://raw.githubusercontent.com/Mrawesome132/turbowarp-ai/refs/heads/main/config.txt";
+
+    // Default fallback prompt while downloading from GitHub
     let currentSystemPrompt = "You are a helpful AI assistant.";
+    
     let username = "User";
     let waitingForNewPersonality = false;
     let userHasScrolledUp = false;
+
+    // CHAT MEMORY ARRAY (PERSISTS CONVERSATION HISTORY FOR TEXT ONLY)
+    let chatHistory = [];
+    
+    // IMAGE PROMPT MEMORY FOR PROMPT STACKING
+    let lastImagePrompt = "";
 
     // GLOBAL VARIABLES TO HOLD THE LATEST RESPONSE DATA
     window.lastResponse = null;
@@ -299,6 +313,24 @@
     window.lastGameHtml = null;
 
     const imageCache = {};
+
+    // FETCH CUSTOM SYSTEM PROMPT FROM GITHUB
+    async function loadSystemPrompt() {
+      try {
+        const response = await fetch(SYSTEM_PROMPT_FILE_URL);
+        if (response.ok) {
+          currentSystemPrompt = await response.text();
+          console.log("[AI Studio] Custom System Prompt successfully loaded from GitHub.");
+        } else {
+          console.warn("[AI Studio] Failed to load prompt from GitHub URL. Using fallback prompt.");
+        }
+      } catch (err) {
+        console.error("[AI Studio] Error loading system prompt from GitHub:", err);
+      }
+    }
+
+    // Call fetch immediately when page script loads
+    loadSystemPrompt();
 
     function handleScroll() {
       const chatBox = document.getElementById("chat-box");
@@ -315,6 +347,12 @@
 
     function toggleTheme() {
       document.body.classList.toggle("light-mode");
+    }
+
+    function clearMemory() {
+      chatHistory = [];
+      lastImagePrompt = "";
+      alert("AI conversation & image prompt memory cleared!");
     }
 
     function inspectLastResponse() {
@@ -484,9 +522,39 @@
       let text = textToSend || inputField.value.trim();
       if (!text) return;
 
-      const lowerText = text.toLowerCase();
-      const isGameRequest = lowerText.startsWith("game") || lowerText.includes("make a game") || lowerText.includes("clone") || lowerText.includes("generate a game");
+      const lowerText = text.toLowerCase().trim();
+      
+      // 1. Check if user is modifying/adding to a previous image
+      const modificationTriggers = ["add ", "make it ", "put ", "give it ", "with "];
+      const isImageAddition = lastImagePrompt !== "" && modificationTriggers.some(trigger => lowerText.startsWith(trigger));
 
+      // 2. Image request check
+      const isImageRequest = /^(draw|generate an image|create an image|make an image|paint|picture of)/i.test(lowerText) || isImageAddition;
+
+      // 3. Stricter Game Check (prevents "make it..." from triggering a game when editing an image)
+      const isGameRequest = !isImageRequest && (
+        lowerText.startsWith("game") || 
+        lowerText.includes("make a game") || 
+        lowerText.includes("create a game") || 
+        lowerText.includes("generate a game")
+      );
+
+      // 4. PROMPT STACKING LOGIC
+      if (isImageRequest) {
+        let cleanPrompt = text
+          .replace(/^(draw|generate an image of|create an image of|generate an image|create an image|make an image of|picture of|add|make it|put|give it)\s*/i, "")
+          .trim();
+
+        if (isImageAddition && lastImagePrompt) {
+          lastImagePrompt = `${lastImagePrompt}, ${cleanPrompt}`;
+        } else {
+          lastImagePrompt = cleanPrompt;
+        }
+
+        text = `draw ${lastImagePrompt}`;
+      }
+
+      // Convert UI style tags
       text = text
         .replace(/--pixelart/gi, "in detailed 16-bit pixel art style")
         .replace(/--anime/gi, "in vibrant high quality anime style")
@@ -527,7 +595,9 @@
           body: JSON.stringify({ 
             message: text,
             systemPrompt: finalSystemPrompt,
-            username: username
+            username: username,
+            isImage: isImageRequest,
+            history: chatHistory
           })
         });
         const data = await res.json();
@@ -536,39 +606,40 @@
           timestamp: new Date().toISOString(),
           userPrompt: text,
           isGame: isGameRequest,
-          isImage: !!data.isImage,
+          isImage: data.type === "IMAGE",
           rawPayload: data
         };
 
         const loadingElem = document.getElementById("loading");
         if (loadingElem) loadingElem.remove();
 
-        if (data.isImage) {
+        if (data.type === "IMAGE" || data.isImage) {
+          const imageUrl = data.url || data.reply;
           const imageId = "img_" + Date.now();
-          imageCache[imageId] = data.reply;
+          imageCache[imageId] = imageUrl;
 
-          window.lastGeneratedImage = data.reply;
+          window.lastGeneratedImage = imageUrl;
           window.lastAiText = "[Image Output]";
           window.lastGameHtml = null;
-          window.lastResponse.imageSrc = data.reply;
+          window.lastResponse.imageSrc = imageUrl;
 
           chatBox.innerHTML += `
             <div class="message">
               <span class="ai">AI Generated Image:</span><br>
-              <img src="${data.reply}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
+              <img src="${imageUrl}" style="max-width:100%; border-radius:8px; margin-top:5px;" alt="AI Image" /><br>
               ${generate15ExportButtons(imageId)}
             </div>`;
 
-          // BROADCAST JSON PAYLOAD TO TURBOWARP
+          // BROADCAST EXACT JSON PAYLOAD TO TURBOWARP
           const imagePayload = JSON.stringify({
             type: "IMAGE",
-            url: data.reply
+            url: imageUrl
           });
           console.log("[AI Studio] Broadcasting image JSON to TurboWarp:", imagePayload.substring(0, 80) + "...");
           window.parent.postMessage(imagePayload, "*");
 
         } else {
-          const reply = data.reply || data.error || "No response received.";
+          const reply = data.content || data.reply || data.error || "No response received.";
           window.lastAiText = reply;
 
           let aiOutput = "";
@@ -634,6 +705,14 @@
             window.lastGeneratedImage = null;
             aiOutput = reply.replace(/^```[a-z]*\n?/i, '').replace(/```$/, '').trim();
             chatBox.innerHTML += `<div class="message"><span class="ai">AI:</span> ${escapeHtml(aiOutput)}</div>`;
+
+            // SAVE ONLY TEXT MESSAGES TO CHAT HISTORY MEMORY
+            chatHistory.push({ role: "user", content: text });
+            chatHistory.push({ role: "assistant", content: aiOutput });
+
+            if (chatHistory.length > 10) {
+              chatHistory = chatHistory.slice(-10);
+            }
 
             // BROADCAST PLAIN TEXT JSON TO TURBOWARP
             const textPayload = JSON.stringify({
